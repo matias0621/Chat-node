@@ -5,27 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chat</title>
     <script type="module">
-        import { io } from 'https://cdn.socket.io/4.3.2/socket.io.esm.min.js'
-
-        const socket = io()
-
-        const form = document.getElementById('form')
-        const input = document.getElementById('input')
-        const messages = document.getElementById('message')
-
-        socket.on('chat message', (msg) => {
-            const item = `<li>${msg}</li>`
-            messages.insertAdjacentHTML('beforeend', item)
-        })
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault()
-
-            if (input.value) {
-                socket.emit('chat message', input.value)
-                input.value = ''
-            }
-        })
+      import { io } from 'https://cdn.socket.io/4.3.2/socket.io.esm.min.js'
+  
+      const getUsername = async () => {
+        const username = localStorage.getItem('username')
+        if (username) {
+          console.log(`User existed ${username}`)
+          return username
+        }
+  
+        const res = await fetch('https://random-data-api.com/api/v2/users/random_user')
+        const { username: randomUsername } = await res.json()
+  
+        localStorage.setItem('username', randomUsername)
+        return randomUsername
+      }
+  
+      const socket = io({
+        auth: {
+          username: await getUsername(),
+          serverOffset: 0
+        }
+      })
+  
+      const form = document.getElementById('form')
+      const input = document.getElementById('input')
+      const messages = document.getElementById('messages')
+  
+      socket.on('chat message', (msg, serverOffset, username) => {
+        const item = `<li>
+          <p>${msg}</p>
+          <small>${username}</small>
+        </li>`
+        messages.insertAdjacentHTML('beforeend', item)
+        socket.auth.serverOffset = serverOffset
+        messages.scrollTop = messages.scrollHeight
+      })
+  
+      form.addEventListener('submit', (e) => {
+        e.preventDefault()
+  
+        if (input.value) {
+          socket.emit('chat message', input.value)
+          input.value = ''
+        }
+      })
     </script>
     <style>
       *,
@@ -67,15 +91,19 @@
         position: absolute;
         right: 0;
       }
-      #message{
+      #messages{
         list-style-type: none;
         margin: 0;
         padding: 0;
+        overflow-y: scroll;
+        height: 100%;
+        scroll-behavior: smooth;
+        padding-bottom: 48px;
       }
-      #message > li {
+      #messages > li {
         padding: .5rem 1rem;
       }
-      #message > li:nth-child(odd) {
+      #messages > li:nth-child(odd) {
         background: #000;
       }
       #input {
@@ -104,7 +132,7 @@
     <h1>Chat</h1>
 
     <section id="chat">
-        <ul id="message">
+        <ul id="messages">
 
         </ul>
       <form id="form">
