@@ -5,15 +5,24 @@ import { createClient } from '@libsql/client'
 
 import { Server } from 'socket.io'
 import { createServer } from 'node:http'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
 dotenv.config()
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 const port = process.env.PORT ?? 3000
 
 const app = express()
 const server = createServer(app)
 const io = new Server(server, {
-    connectionStateRecovery: {}
+    connectionStateRecovery: {},
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
 })
 
 const db = createClient({
@@ -71,9 +80,10 @@ io.on('connection', async (socket) => {
 })
 
 app.use(logger("dev"))
+app.use(express.static(join(__dirname, '../client')))
 
 app.get('/', (req, res) => {
-    res.sendFile(process.cwd() + '/client/index.html')
+    res.sendFile(join(__dirname, '../client/index.html'))
 })
 
 server.listen(port, () => {

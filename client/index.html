@@ -21,7 +21,7 @@
         return randomUsername
       }
   
-      const socket = io({
+      const socket = io('http://localhost:3000', {
         auth: {
           username: await getUsername(),
           serverOffset: 0
